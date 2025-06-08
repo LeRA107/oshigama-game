@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>おしがまフラッシュゲーム</title>
+  <style>
+    body { font-family: sans-serif; background: #f0f0f0; }
+    .container {
+      max-width: 960px; margin: 20px auto; padding: 20px;
+      background: #fff; border: 1px solid #ccc;
+    }
+    .title {
+      font-size: 1.8rem; font-weight: bold; text-align: center;
+      position: relative; background: #e6e6e6; padding: 10px;
+    }
+    .extra-label {
+      position: absolute; top: 10px; right: 10px;
+      font-size: 1.2rem; font-weight: bold;
+      color: #ffcc00; text-shadow: 2px 2px 3px #000;
+    }
+    .main { display: flex; gap: 20px; }
+    .gauge-box {
+      width: 80px; height: 300px; background: #ddd;
+      border: 2px solid #333; position: relative;
+    }
+    .gauge-fill {
+      position: absolute; bottom: 0; width: 100%;
+      background: linear-gradient(to top, #fff700, #ffe800);
+      transition: height 0.3s;
+    }
+    .info { flex: 1; }
+    .image-box {
+      width: 100%; height: 300px;
+      background: #f9f9f9; border: 2px dashed #aaa;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; color: #777; margin-bottom: 10px;
+    }
+    .serif-box {
+      font-size: 1rem; background: #eee;
+      border: 1px solid #888; padding: 10px;
+      margin-bottom: 10px; min-height: 60px;
+    }
+    .btn {
+      font-size: 1rem; padding: 10px 20px;
+      background: #444; color: #fff; border: none;
+    }
+    .btn:hover { background: #222; }
+    .status-bar {
+      font-size: 0.9rem; text-align: right;
+      margin-bottom: 5px; color: #444;
+    }
+    .effect-label {
+      position: fixed; bottom: 20px; right: 20px;
+      font-size: 24px; font-weight: bold;
+      color: #f5d700; text-shadow: 2px 2px 3px #000;
+      pointer-events: none; z-index: 999;
+      animation: fadeInOut 1.5s ease-in-out;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: scale(0.9); }
+      20% { opacity: 1; transform: scale(1.1); }
+      80% { opacity: 1; }
+      100% { opacity: 0; transform: scale(0.9); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">おしがまフラッシュゲーム<span id="extraLabel" class="extra-label"></span></div>
+    <div class="status-bar">尿意：<span id="urineLabel">0</span>%　残り授業時間：<span id="timeLabel">50:00</span></div>
+    <div class="main">
+      <div class="gauge-box"><div id="gaugeFill" class="gauge-fill" style="height: 0%"></div></div>
+      <div class="info">
+        <div class="image-box">※ここにイラストが入ります※</div>
+        <div id="serifBox" class="serif-box">（セリフがここに表示されます）</div>
+        <button class="btn" onclick="increaseUrine()">尿意増加！</button>
+<div id="stylishEffect" style="margin-top: 12px; font-size: 1.3em; font-weight: bold; color: orange; text-align: center;"></div>
+
+      </div>
+    </div>
+  </div>
+  <div id="effectLabel" class="effect-label"></div>
+
+<audio id="start_0_mp3" src="se/start 0.mp3"></audio>
+<audio id="15_mozimozi_wav" src="se/15 mozimozi.wav"></audio>
+<audio id="30otibiro_wav" src="se/30otibiro.wav"></audio>
+<audio id="42_mozimozi" src="se/42 mozimozi"></audio>
+<audio id="92_otibiri_wav" src="se/92 otibiri.wav"></audio>
+<audio id="114_otibiri_wav" src="se/114 otibiri.wav"></audio>
+<audio id="117_omorashi_wav" src="se/117 omorashi.wav"></audio>
+
+
+<script>
+const scriptData = [
+  { threshold: 0, text: "「…」", se: "" },
+  { threshold: 3, text: "（…退屈だな。）", se: "start_0_mp3" },
+  { threshold: 6, text: "（昼休みのあとは眠いし…）", se: "" },
+  { threshold: 9, text: "（あ〜、いっそ早退できたら…）", se: "" },
+  { threshold: 12, text: "「んっ…」", se: "" },
+  { threshold: 15, text: "「んっ、んんっ…ん？」", se: "15_mozimozi_wav" },
+  { threshold: 18, text: "（…ちょっと、トイレに行きたい。）", se: "" },
+  { threshold: 21, text: "（授業前に行ったのに…）", se: "" },
+  { threshold: 24, text: "「んっ、んんっ…」", se: "" },
+  { threshold: 27, text: "「ふぅ…んんっ…」", se: "" },
+  { threshold: 30, text: "「んっ、んんっ…う〜…」", se: "30otibiro_wav" },
+  { threshold: 33, text: "（あれ…なんでこんな急に…）", se: "" },
+  { threshold: 36, text: "（お昼のコーヒー？けどそんな飲んだ記憶は…）", se: "" },
+  { threshold: 39, text: "「っ！んんっ…」", se: "" },
+  { threshold: 42, text: "「んっ、んんっ…はぁ…はぁ…」", se: "42_mozimozi" },
+  { threshold: 45, text: "（トイレで、気が散るな…）", se: "" },
+  { threshold: 48, text: "「んっ、んんっ…」", se: "" },
+  { threshold: 51, text: "「うぅ…はぁ…はぁ…」", se: "" },
+  { threshold: 54, text: "（足が、落ち着かない…）", se: "" },
+  { threshold: 57, text: "「んっ…はぁ…はぁ…」", se: "" },
+  { threshold: 60, text: "（トイレに行く？けど、高校生にもなって…）", se: "" },
+  { threshold: 63, text: "「んっ、んんっ…ふぅぅ…」", se: "" },
+  { threshold: 66, text: "（…大丈夫、授業前にトイレは行った、なら…）", se: "" },
+  { threshold: 69, text: "「はぁ…はぁ…んくっ…」", se: "" },
+  { threshold: 72, text: "「あぅ…んんんっ…」", se: "" },
+  { threshold: 75, text: "（足が、勝手に動く…）", se: "" },
+  { threshold: 78, text: "（じっとしてないと、周りから怪しまれちゃう…）", se: "" },
+  { threshold: 81, text: "「はぁ…！はぁ…！」", se: "" },
+  { threshold: 84, text: "「んぐぅ…！んんっ…」", se: "" },
+  { threshold: 87, text: "（やばい…ちょっともう、限界かも…）", se: "" },
+  { threshold: 90, text: "（ていうかなんで、こんな急にトイレが…）", se: "" },
+  { threshold: 93, text: "「んぅ…！」", se: "" },
+  { threshold: 96, text: "「っ、あっ…！」（嘘、今ちょっと…）", se: "92_otibiri_wav" },
+  { threshold: 99, text: "「ひぅ…！」（だめっ…もう我慢が…）", se: "" },
+  { threshold: 102, text: "「あっ…」（まって、でちゃ…）", se: "" },
+  { threshold: 105, text: "「んっ！ふぅ！ふぅ！んんっ…！」（出るな、出るな出るな出るな…）", se: "" },
+  { threshold: 108, text: "「い”っ…」（なん、で…）", se: "" },
+  { threshold: 111, text: "「はぁ！はぁ！」（むりっ、もう出るおしっこ出る漏れる漏れる漏れる漏れる漏れる）", se: "" },
+  { threshold: 114, text: "「あ”っ…」", se: "114_otibiri_wav" },
+  { threshold: 117, text: "「んっ、んんんっ…」", se: "117_omorashi_wav" }
+];
+
+let urine = 0;
+let time = 50;
+let lastThreshold = -1;
+
+function updateUI() {
+  document.getElementById("urineLabel").textContent = urine;
+  document.getElementById("gaugeFill").style.height = Math.min(urine, 120) + "%";
+
+  let current = "";
+  let seId = "";
+  let currentThreshold = -1;
+
+  for (let i = 0; i < scriptData.length; i++) {
+    if (urine >= scriptData[i].threshold) {
+      current = scriptData[i].text;
+      seId = scriptData[i].se;
+      currentThreshold = scriptData[i].threshold;
+    }
+  }
+
+  document.getElementById("serifBox").textContent = current;
+
+  if (currentThreshold > lastThreshold && seId) {
+    const audio = document.getElementById(seId);
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play();
+    }
+  }
+  lastThreshold = currentThreshold;
+
+  const effectDiv = document.getElementById("effectLabel");
+  const extra = document.getElementById("extraLabel");
+
+  let effectText = "";
+  if (urine >= 30 && urine < 60) {
+    effectText = "そわそわっ！";
+  } else if (urine >= 60 && urine < 90) {
+    effectText = "もじもじっ！";
+  } else if (urine >= 100) {
+    effectText = "お漏らし！";
+    extra.textContent = "";
+  }
+
+  if (effectText) {
+    effectDiv.textContent = effectText;
+    effectDiv.classList.remove("effect-label");
+    void effectDiv.offsetWidth;
+    effectDiv.classList.add("effect-label");
+  }
+}
+
+function updateTime() {
+  time--;
+  const m = String(Math.floor(time / 60)).padStart(2, '0');
+  const s = String(time % 60).padStart(2, '0');
+  document.getElementById("timeLabel").textContent = `${m}:${s}`;
+  if (time <= 0) clearInterval(timer);
+}
+
+function increaseUrine() {
+  urine++;
+  updateUI();
+}
+
+let timer = setInterval(updateTime, 1000);
+updateUI();
+</script>
+
+  <audio id="start_0_mp3" src="se/start 0.mp3"></audio>
+<audio id="15_mozimozi_wav" src="se/15 mozimozi.wav"></audio>
+<audio id="30otibiro_wav" src="se/30otibiro.wav"></audio>
+<audio id="42_mozimozi_wav" src="se/42 mozimozi.wav"></audio>
+<audio id="92_otibiri_wav" src="se/92 otibiri.wav"></audio>
+<audio id="114_otibiri_wav" src="se/114 otibiri.wav"></audio>
+<audio id="117_omorashi_wav" src="se/117 omorashi.wav"></audio>
+
+  <script>
+  let urineLevel = 0;
+  let timeRemaining = 50;
+  let interval = setInterval(updateTime, 1000);
+  let hasEnded = false;
+  let finalTriggered = false;
+  let triggeredStages = new Set();
+
+  const scriptData = [
+  { threshold: 0, text: `「…」`, se: "" },
+  { threshold: 3, text: `（…退屈だな。）`, se: "start 0.mp3" },
+  { threshold: 6, text: `（昼休みのあとは眠いし…）`, se: "" },
+  { threshold: 9, text: `（あ〜、いっそ早退できたら…）`, se: "" },
+  { threshold: 12, text: `「んっ…」`, se: "" },
+  { threshold: 15, text: `「んっ、んんっ…ん？」`, se: "15 mozimozi.wav" },
+  { threshold: 18, text: `（…ちょっと、トイレに行きたい。）`, se: "" },
+  { threshold: 21, text: `（授業前に行ったのに…）`, se: "" },
+  { threshold: 24, text: `「んっ、んんっ…」`, se: "" },
+  { threshold: 27, text: `「ふぅ…んんっ…」`, se: "" },
+  { threshold: 30, text: `「んっ、んんっ…う〜…」`, se: "30otibiro.wav" },
+  { threshold: 33, text: `（あれ…なんでこんな急に…）`, se: "" },
+  { threshold: 36, text: `（お昼のコーヒー？けどそんな飲んだ記憶は…）`, se: "" },
+  { threshold: 39, text: `「っ！んんっ…」`, se: "" },
+  { threshold: 42, text: `「んっ、んんっ…はぁ…はぁ…」`, se: "42 mozimozi" },
+  { threshold: 45, text: `（トイレで、気が散るな…）`, se: "" },
+  { threshold: 48, text: `「んっ、んんっ…」`, se: "" },
+  { threshold: 51, text: `「うぅ…はぁ…はぁ…」`, se: "" },
+  { threshold: 54, text: `（足が、落ち着かない…）`, se: "" },
+  { threshold: 57, text: `「んっ…はぁ…はぁ…」`, se: "" },
+  { threshold: 60, text: `（トイレに行く？けど、高校生にもなって…）`, se: "" },
+  { threshold: 63, text: `「んっ、んんっ…ふぅぅ…」`, se: "" },
+  { threshold: 66, text: `（…大丈夫、授業前にトイレは行った、なら…）`, se: "" },
+  { threshold: 69, text: `「はぁ…はぁ…んくっ…」`, se: "" },
+  { threshold: 72, text: `「あぅ…んんんっ…」`, se: "" },
+  { threshold: 75, text: `（足が、勝手に動く…）`, se: "" },
+  { threshold: 78, text: `（じっとしてないと、周りから怪しまれちゃう…）`, se: "" },
+  { threshold: 81, text: `「はぁ…！はぁ…！」`, se: "" },
+  { threshold: 84, text: `「んぐぅ…！んんっ…」`, se: "" },
+  { threshold: 87, text: `（やばい…ちょっともう、限界かも…）`, se: "" },
+  { threshold: 90, text: `（ていうかなんで、こんな急にトイレが…）`, se: "" },
+  { threshold: 93, text: `「んぅ…！」`, se: "" },
+  { threshold: 96, text: `「っ、あっ…！」（嘘、今ちょっと…）`, se: "92 otibiri.wav" },
+  { threshold: 99, text: `「ひぅ…！」（だめっ…もう我慢が…）`, se: "" },
+  { threshold: 102, text: `「あっ…」（まって、でちゃ…）`, se: "" },
+  { threshold: 105, text: `「んっ！ふぅ！ふぅ！んんっ…！」（出るな、出るな出るな出るな…）`, se: "" },
+  { threshold: 108, text: `「い”っ…」（なん、で…）`, se: "" },
+  { threshold: 111, text: `「はぁ！はぁ！」（むりっ、もう出るおしっこ出る漏れる漏れる漏れる漏れる漏れる）`, se: "" },
+  { threshold: 114, text: `「あ”っ…」`, se: "114 otibiri.wav" },
+  { threshold: 117, text: `「んっ、んんんっ…」`, se: "117 omorashi.wav" }
+];
+
+  function updateTime() {
+    if (timeRemaining > 0) {
+      timeRemaining--;
+      const minutes = Math.floor(timeRemaining / 60);
+      const seconds = timeRemaining % 60;
+      document.getElementById("status").innerText = `尿意: ${urineLevel}%　残り授業時間: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    } else if (!hasEnded) {
+      clearInterval(interval);
+      hasEnded = true;
+      document.getElementById("serifBox").innerText = "少女はトイレに駆け込んだ…";
+    }
+  }
+
+  function increaseUrine() {
+    if (hasEnded || urineLevel >= 100) return;
+    urineLevel += 1;
+    if (urineLevel >= 100) {
+      urineLevel = 100;
+      if (!finalTriggered) {
+        finalTriggered = true;
+        document.getElementById("serifBox").innerText = "お漏らし！";
+        playSE("117_omorashi_wav");
+        clearInterval(interval);
+        hasEnded = true;
+      }
+    } else {
+      const current = getLatestScript(urineLevel);
+      document.getElementById("serifBox").innerText = current.text;
+      const seKey = current.se.replace(/\s|\./g, '_');
+      if (current.se && !triggeredStages.has(seKey)) {
+        playSE(seKey);
+        triggeredStages.add(seKey);
+      }
+    }
+    updateTime();
+  }
+
+  function getLatestScript(level) {
+    let matched = { threshold: 0, text: "", se: "" };
+    for (let i = 0; i < scriptData.length; i++) {
+      if (level >= scriptData[i].threshold) matched = scriptData[i];
+    }
+    return matched;
+  }
+
+  function playSE(id) {
+    const audio = document.getElementById(id);
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play();
+    }
+  }
+  </script>
+</body>
+</html>
+
+</html>
